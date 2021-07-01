@@ -209,7 +209,9 @@ func (isc *ImageSetController) syncImageSet(key string) error {
 			authConfig.RegistryToken = auth.RegistryToken
 		}
 		// TODO, add event supported
-		imageRef, err = isc.dc.PullImage(image, authConfig, dockertypes.ImagePullOptions{})
+		if !isc.isExistedImage(ims) {
+			imageRef, err = isc.dc.PullImage(image, authConfig, dockertypes.ImagePullOptions{})
+		}
 	case RemoveAction:
 		_, err = isc.dc.RemoveImage(image, dockertypes.ImageRemoveOptions{})
 	default:
@@ -282,4 +284,25 @@ func (isc *ImageSetController) isSelectedNode(ims *appsv1alpha1.ImageSet) bool {
 		}
 	}
 	return isSelected
+}
+
+func (isc *ImageSetController) isExistedImage(ims *appsv1alpha1.ImageSet) bool {
+	image := ims.Status.Image
+	if image == "" {
+		return false
+	}
+	isc.dc.InspectImageByRef(image)
+	img, err := isc.dc.InspectImageByRef(image)
+	if err != nil {
+		klog.Errorf("get %s imageset: %s  images failed: %v", ims.Spec.Action, image, err)
+	}
+	if img == nil {
+		klog.Errorf("unable to inspect image %s", image)
+	}
+	// Returns the digest if it exist.
+	if len(img.RepoDigests) > 0 {
+		return true
+	} else {
+		return false
+	}
 }
