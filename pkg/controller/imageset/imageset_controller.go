@@ -298,6 +298,7 @@ func (isc *ImageSetController) isExistedImage(ims *appsv1alpha1.ImageSet) bool {
 	}
 	if img == nil {
 		klog.Errorf("unable to inspect image %s", image)
+		return false
 	}
 	// Returns the digest if it exist.
 	if len(img.RepoDigests) > 0 {
